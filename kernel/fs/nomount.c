@@ -288,14 +288,23 @@ struct filename *nomount_handle_getname(struct filename *name)
         if ((rule->flags & NM_FLAG_IS_DIR) && full_len > rule->vp_len) {
             if (!memcmp(full_path, rule->virtual_path, rule->vp_len) && full_path[rule->vp_len] == '/') {
                 size_t suffix_len = full_len - rule->vp_len;
-                if (likely(rule->rp_len + suffix_len < PATH_MAX)) {
+                
+                if (likely(rule->rp_len + suffix_len < PATH_MAX - 64)) {
+                    
                     if (!page_buf) {
                         page_buf = (char *)__getname();
                         if (unlikely(!page_buf)) break;
                     }
-                    memcpy((char *)page_buf, rule->real_path, rule->rp_len);
-                    memcpy((char *)page_buf + rule->rp_len, full_path + rule->vp_len, suffix_len + 1);
-                    goto found_recursive;
+                    
+                    memcpy(page_buf, rule->real_path, rule->rp_len);
+                    memcpy(page_buf + rule->rp_len, full_path + rule->vp_len, suffix_len + 1);
+                    memcpy((char *)name->name, page_buf, rule->rp_len + suffix_len + 1);
+                    
+                    nm_debug("App Fallback Redirected: %s -> %s\n", full_path, name->name);
+                    
+                    rcu_read_unlock();
+                    __putname(page_buf);
+                    return name;
                 }
             }
         }
