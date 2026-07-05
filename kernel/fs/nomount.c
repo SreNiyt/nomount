@@ -296,8 +296,8 @@ struct filename *nomount_handle_getname(struct filename *name)
                         if (unlikely(!page_buf)) break;
                     }
                     
-                    memcpy(page_buf, rule->real_path, rule->rp_len);
-                    memcpy(page_buf + rule->rp_len, full_path + rule->vp_len, suffix_len + 1);
+                    memcpy((char *)page_buf, rule->real_path, rule->rp_len);
+                    memcpy((char *)page_buf + rule->rp_len, full_path + rule->vp_len, suffix_len + 1);
                     memcpy((char *)name->name, page_buf, rule->rp_len + suffix_len + 1);
                     
                     nm_debug("App Fallback Redirected: %s -> %s\n", full_path, name->name);
@@ -310,14 +310,6 @@ struct filename *nomount_handle_getname(struct filename *name)
         }
     }
 
-found_recursive:
-    if (name->name != name->iname) {
-        __putname((void *)name->name);
-    }
-    name->name = page_buf;
-    nm_debug("App Fallback Redirected: %s -> %s\n", full_path, page_buf);
-    rcu_read_unlock();
-    return name;
     rcu_read_unlock();
     if (unlikely(page_buf)) __putname(page_buf);
     return name;
